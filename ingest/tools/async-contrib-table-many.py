@@ -7,12 +7,12 @@ import sys
 import time
 
 from ingest_api import ingest_api
-from ingest_util import fatal, info, argument_parser, parse_contrib_location
+from ingest_util import fatal, info, argument_parser
 
 def parseArguments():
     parser = argument_parser(
-        """Start a transaction. Allocate chunks for the given contributions. Initiate ingestion
-        of the contributions using ASYNC method. Wait before the completion of the operation.
+        """Start a transaction. Get table locations at all workers. Initiate ingestion of
+        the table contributions using ASYNC method. Wait before the completion of the operation.
         Commit the transaction.""")
     parser.add_argument(
         "--database",
@@ -61,10 +61,12 @@ def translate_host2ip(host):
 
     return host2ip[host]
 
-
-def get_chunk_locations(api, database, urls):
-    chunks = set([parse_contrib_location(contrib_loc_str)["chunk"] for contrib_loc_str in urls])
-    return api.locate_chunks(database, chunks)
+def get_chunk_location(api, database, chunk):
+    chunks = set([chunk,])
+    locations = api.locate_chunks(database, chunks)
+    if chunk not in locations:
+        fatal("Incorect location reported for chunk={}".format(chunk))
+    return locations[chunk]
 
 if __name__ == '__main__':
 
@@ -75,35 +77,31 @@ if __name__ == '__main__':
         urls = [url[:-1] for url in f]
 
     api = ingest_api(args.qserv_config, args.debug)
-    chunk_locations = get_chunk_locations(api, args.database, urls)
+    itable_locations = api.locate_regular_tables(args.database)
     trans_id = api.start_trans(args.database)
     if args.verbose:
         info("TRANS:     {}\tSTARTED".format(trans_id))
 
     contrib_entries = {}
-    for contrib_loc_str in urls:
-        contrib_loc = parse_contrib_location(contrib_loc_str)
-        chunk   = contrib_loc["chunk"]
-        overlap = contrib_loc["overlap"]
-        url     = contrib_loc["url"]
-        contrib_descr = {
-            "transaction_id":       trans_id,
-            "table":                args.table,
-            "fields_terminated_by": args.fields_terminated_by,
-            "fields_enclosed_by":   args.fields_enclosed_by,
-            "chunk":                chunk,
-            "overlap":              overlap,
-            "url":                  url}
-        location = chunk_locations[chunk]
+    for location in itable_locations:
         location["http_addr"] = translate_host2ip(location["http_host_name"])
-        contrib = api.async_contrib(location, contrib_descr)
-        contrib_id = contrib["id"]
-        contrib_entries[contrib_id] = {
-            "location": location,
-            "contrib": contrib,
-        };
-        if args.verbose:
-            info("CONTRIB:   {}\t{}\tworker={}".format(contrib_id, contrib["status"], location["worker"]))
+        for url in urls:
+            contrib_descr = {
+                 "transaction_id":       trans_id,
+                 "table":                args.table,
+                 "fields_terminated_by": args.fields_terminated_by,
+                 "fields_enclosed_by":   args.fields_enclosed_by,
+                 "chunk":                0,
+                 "overlap":              0,
+                 "url":                  url}
+             contrib = api.async_contrib(location, contrib_descr)
+             contrib_id = contrib["id"]
+             contrib_entries[contrib_id] = {
+                 "location": location,
+                 "contrib": contrib,
+             };
+             if args.verbose:
+                 info("CONTRIB:   {}\t{}\tworker={}".format(contrib_id, contrib["status"], location["worker"]))
 
     failed_contrib_entries = {}
 
