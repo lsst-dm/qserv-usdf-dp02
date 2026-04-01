@@ -87,21 +87,21 @@ if __name__ == '__main__':
         location["http_addr"] = translate_host2ip(location["http_host_name"])
         for url in urls:
             contrib_descr = {
-                 "transaction_id":       trans_id,
-                 "table":                args.table,
-                 "fields_terminated_by": args.fields_terminated_by,
-                 "fields_enclosed_by":   args.fields_enclosed_by,
-                 "chunk":                0,
-                 "overlap":              0,
-                 "url":                  url}
-             contrib = api.async_contrib(location, contrib_descr)
-             contrib_id = contrib["id"]
-             contrib_entries[contrib_id] = {
-                 "location": location,
-                 "contrib": contrib,
-             };
-             if args.verbose:
-                 info("CONTRIB:   {}\t{}\tworker={}".format(contrib_id, contrib["status"], location["worker"]))
+                "transaction_id":       trans_id,
+                "table":                args.table,
+                "fields_terminated_by": args.fields_terminated_by,
+                "fields_enclosed_by":   args.fields_enclosed_by,
+                "chunk":                0,
+                "overlap":              0,
+                "url":                  url}
+            contrib = api.async_contrib(location, contrib_descr)
+            contrib_id = contrib["id"]
+            contrib_entries[contrib_id] = {
+                "location": location,
+                "contrib": contrib,
+            };
+            if args.verbose:
+                info("CONTRIB:   {}\t{}\tworker={}".format(contrib_id, contrib["status"], location["worker"]))
 
     failed_contrib_entries = {}
 
