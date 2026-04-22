@@ -33,8 +33,7 @@ DEBUG_OPT=
 DIRECTOR_TABLES="Object Source DiaObject ShearObject"
 PARTITIONED_TABLES="Object Source ForcedSource DiaObject DiaSource ForcedSourceOnDiaObject ShearObject"
 FULLY_REPLICATED_TABLES="SSObject SSSource Visit VisitDetector"
-FULLY_REPLICATED_TABLES_MANY="Parent"
-ALL_TABLES="${PARTITIONED_TABLES} ${FULLY_REPLICATED_TABLES} ${FULLY_REPLICATED_TABLES_MANY}"
+ALL_TABLES="${PARTITIONED_TABLES} ${FULLY_REPLICATED_TABLES}"
 
 # CSV dialect definitions for the tables
 Object_CSV_DIALECT=
@@ -48,7 +47,6 @@ SSObject_CSV_DIALECT='--fields-enclosed-by="'
 SSSource_CSV_DIALECT='--fields-enclosed-by="'
 Visit_CSV_DIALECT='--fields-enclosed-by="'
 VisitDetector_CSV_DIALECT='--fields-enclosed-by="'
-Parent_CSV_DIALECT='--fields-enclosed-by="'
 
 APP=register-database
 LOG=${LOG_DIR}/${APP}.log
@@ -89,19 +87,6 @@ for TABLE in ${FULLY_REPLICATED_TABLES}; do
   CSV_DIALECT="${TABLE}_CSV_DIALECT";
   echo $(TIMESTAMP)"Ingest table contributions into ${TABLE} -> ${LOG}";
   ${TOOLS}/${APP}.py ${DATABASE_OPT} --table=${TABLE} ${!CSV_DIALECT} ${VERBOSE_OPT} ${DEBUG_OPT} --url=${URL} >& ${LOG};
-  if [ $? -ne 0 ] ; then
-    echo $(TIMESTAMP)FAILED;
-    exit 1;
-  fi;
-done
-
-APP=async-contrib-table-many
-for TABLE in ${FULLY_REPLICATED_TABLES_MANY}; do
-  URL=$(cat ${DATA_DIR}/${TABLE}.urls);
-  LOG=${LOG_DIR}/${APP}-${TABLE}.log;
-  CSV_DIALECT="${TABLE}_CSV_DIALECT";
-  echo $(TIMESTAMP)"Ingest table contributions into ${TABLE} -> ${LOG}";
-  ${TOOLS}/${APP}.py ${DATABASE_OPT} --table=${TABLE} ${!CSV_DIALECT} ${VERBOSE_OPT} ${DEBUG_OPT} ${DATA_DIR}/${TABLE}.urls >& ${LOG};
   if [ $? -ne 0 ] ; then
     echo $(TIMESTAMP)FAILED;
     exit 1;
